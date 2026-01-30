@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A Special Birthday Wish</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- React & Babel for in-browser JSX transformation -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+      body {
+        font-family: 'Satoshi', sans-serif;
+        background-color: #0c0a09;
+        overflow: hidden;
+      }
+      .font-heading {
+        font-family: 'Playfair Display', serif;
+      }
+      .text-gradient {
+        background: linear-gradient(to right, #fbcfe8, #ffffff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+      }
+      .aurora-bg {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -2;
+        background-color: #0c0a09;
+        overflow: hidden;
+      }
+      .aurora-bg::before,
+      .aurora-bg::after {
+        content: '';
+        position: absolute;
+        width: 100vw;
+        height: 100vh;
+        background-image: 
+          radial-gradient(ellipse 50% 50% at 20% 40%, hsla(333, 70%, 55%, .4), transparent),
+          radial-gradient(ellipse 50% 50% at 80% 50%, hsla(282, 82%, 54%, .3), transparent),
+          radial-gradient(ellipse 50% 50% at 60% 80%, hsla(210, 89%, 60%, .3), transparent),
+          radial-gradient(ellipse 50% 50% at 20% 90%, hsla(35, 90%, 60%, .3), transparent);
+        mix-blend-mode: screen;
+        animation: aurora-flow 25s linear infinite;
+        z-index: -1;
+      }
+
+      .aurora-bg::after {
+        animation-direction: reverse;
+        animation-duration: 35s;
+        opacity: 0.7;
+      }
+
+      @keyframes aurora-flow {
+        0% { transform: translateX(0) translateY(0) rotate(0deg) scale(1.2); }
+        50% { transform: translateX(5vw) translateY(10vh) rotate(10deg) scale(1.5); }
+        100% { transform: translateX(0) translateY(0) rotate(0deg) scale(1.2); }
+      }
+
+      .icon-glow {
+        animation: pulse-glow 2s infinite ease-in-out;
+      }
+      
+      @keyframes pulse-glow {
+        0%, 100% {
+          text-shadow: 0 0 10px #f43f5e, 0 0 20px #f43f5e, 0 0 30px #f43f5e;
+        }
+        50% {
+          text-shadow: 0 0 20px #f43f5e, 0 0 40px #f43f5e, 0 0 60px #f43f5e;
+        }
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.4",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "gsap": "https://esm.sh/gsap@^3.14.2",
+    "three": "https://esm.sh/three@^0.182.0"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+      const { useState, useEffect, useRef, forwardRef } = React;
+
+      // Component: ProgressBar
+      const ProgressBar = ({ progress }) => {
+        return (
+          <div className="fixed top-5 left-1/2 -translate-x-1/2 w-4/5 max-w-sm z-50">
+            <div className="h-2 bg-white/10 backdrop-blur-sm rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-pink-500 to-red-500 rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+        );
+      };
+
+      // Component: StepContainer
+      const StepContainer = ({ children }) => {
+        return (
+          <div className="w-[90vw] max-w-2xl bg-black/20 backdrop-blur-2xl border border-white/10 shadow-2xl rounded-3xl p-8 md:p-12 text-center flex flex-col items-center justify-center space-y-6">
+            {children}
+          </div>
+        );
+      };
+
+      // Component: GradientButton
+      const GradientButton = forwardRef(({ onClick, children, className = '', disabled = false }, ref) => {
+        return (
+          <button
+            ref={ref}
+            onClick={onClick}
+            disabled={disabled}
+            className={`relative inline-flex items-center justify-center px-8 py-3 overflow-hidden font-bold text-white rounded-full group transition-all duration-300 ease-in-out transform hover:scale-105 active:scale-95 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+          >
+            <span className="absolute inset-0 w-full h-full bg-gradient-to-r from-pink-500 to-red-500"></span>
+            <span className="absolute inset-0 w-full h-full transition-all duration-300 ease-in-out bg-gradient-to-r from-pink-600 to-red-600 opacity-0 group-hover:opacity-100"></span>
+            <span className="absolute inset-0 w-full h-full transition-all duration-500 ease-in-out shadow-[0_0_15px_5px_rgba(236,72,153,0.5)] opacity-0 group-hover:opacity-100 group-hover:shadow-[0_0_30px_10px_rgba(236,72,153,0.7)]"></span>
+            <span className="relative z-10">{children}</span>
+          </button>
+        );
+      });
+      GradientButton.displayName = 'GradientButton';
+
+      // Component: Step1
+      const Step1 = ({ onNext }) => (
+        <StepContainer>
+          <div className="animate-in text-8xl icon-glow">❤️</div>
+          <h1 className="animate-in font-heading text-5xl md:text-6xl text-gradient">Hey Beautiful,</h1>
+          <p className="animate-in text-lg text-slate-300 max-w-md">
+            I built a little world for you, just to bring a smile to your face on your special day.
+          </p>
+          <GradientButton onClick={onNext} className="animate-in">
+            Let's Begin
+          </GradientButton>
+        </StepContainer>
+      );
+
+      // Component: Step2
+      const Step2 = ({ onNext }) => (
+        <StepContainer>
+          <div className="animate-in text-8xl">🎉</div>
+          <h1 className="animate-in font-heading text-5xl md:text-6xl text-gradient">Happy Birthday!</h1>
+          <p className="animate-in text-lg text-slate-300 max-w-md">
+            Another year of you making the world brighter. Your existence is a gift, and I'm so lucky to witness it.
+          </p>
+          <GradientButton onClick={onNext} className="animate-in">
+            There's more...
+          </GradientButton>
+        </StepContainer>
+      );
+
+      // Component: BentoCard (for Step 3)
+      const BentoCard = ({ title, text, className }) => (
+        <div className={`bg-black/20 p-4 rounded-xl border border-white/10 ${className}`}>
+          <h3 className="font-bold text-md text-pink-300 mb-1">{title}</h3>
+          <p className="text-sm text-slate-300">{text}</p>
+        </div>
+      );
+
+      // Component: Step3
+      const Step3 = ({ onNext }) => (
+        <StepContainer>
+          <h2 className="animate-in font-heading text-4xl md:text-5xl text-gradient mb-4">A Few Things I Adore About You</h2>
+          <div className="animate-in w-full grid grid-cols-2 grid-rows-2 gap-4 text-left">
+            <BentoCard 
+              className="col-span-2" 
+              title="✨ Your Unmatched Kindness" 
+              text="The genuine warmth you show to everyone is something truly rare and beautiful." 
+            />
+            <BentoCard 
+              className="row-start-2"
+              title="😊 That Smile" 
+              text="It's a work of art." 
+            />
+            <BentoCard 
+              className="col-span-2 col-start-1 row-start-3 md:col-start-2 md:row-start-2 md:col-span-1"
+              title="🌟 Your Radiant Spirit" 
+              text="Your passion for life is infectious. Being around you makes everything feel more exciting and possible." 
+            />
+          </div>
+          <GradientButton onClick={onNext} className="animate-in mt-6">
+            Remember this?
+          </GradientButton>
+        </StepContainer>
+      );
+
+      // Component: Step4
+      const Step4 = ({ onNext }) => {
+        const polaroidRef = useRef(null);
+        useEffect(() => {
+            const el = polaroidRef.current;
+            if (!el) return;
+            const handleMouseMove = (e) => {
+                const { clientX, clientY, currentTarget } = e;
+                const { clientWidth, clientHeight, offsetLeft, offsetTop } = currentTarget;
+                const x = (clientX - offsetLeft) / clientWidth;
+                const y = (clientY - offsetTop) / clientHeight;
+                const rotateX = (y - 0.5) * -30;
+                const rotateY = (x - 0.5) * 30;
+                el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+            };
+            const handleMouseLeave = () => {
+                el.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+            };
+            el.addEventListener('mousemove', handleMouseMove);
+            el.addEventListener('mouseleave', handleMouseLeave);
+            return () => {
+                el.removeEventListener('mousemove', handleMouseMove);
+                el.removeEventListener('mouseleave', handleMouseLeave);
+            };
+        }, []);
+        return (
+          <StepContainer>
+            <h2 className="animate-in font-heading text-4xl md:text-5xl text-gradient">That One Time...</h2>
+            <div 
+              ref={polaroidRef}
+              className="animate-in bg-white p-4 pb-16 rounded-md shadow-lg transition-transform duration-300 ease-out" 
+              style={{ transformStyle: 'preserve-3d', transform: 'perspective(1000px) rotateZ(-5deg)' }}>
+              <img 
+                src="https://i.ibb.co/6Z6XgCg/crush.webp" 
+                alt="A cherished memory" 
+                className="w-64 h-64 object-cover" 
+              />
+              <p className="absolute bottom-4 left-4 font-heading text-black text-lg">Our favorite memory.</p>
+            </div>
+            <p className="animate-in text-lg text-slate-300 max-w-md mt-6">
+              Every moment with you feels like a scene from a movie I'd watch on repeat.
+            </p>
+            <GradientButton onClick={onNext} className="animate-in">
+              One last thing...
+            </GradientButton>
+          </StepContainer>
+        );
+      };
+
+      // Component: Step5
+      const Step5 = ({ onCelebrate, isCelebrating }) => {
+        const buttonRef = useRef(null);
+        const finalMessageRef = useRef(null);
+        useEffect(() => {
+          if (isCelebrating) {
+            gsap.to(buttonRef.current, { autoAlpha: 0, scale: 0.8, duration: 0.5, ease: 'power3.in' });
+            gsap.fromTo(finalMessageRef.current, 
+              { autoAlpha: 0, y: 20 },
+              { autoAlpha: 1, y: 0, duration: 1, delay: 0.5, ease: 'elastic.out(1, 0.5)' }
+            );
+          }
+        }, [isCelebrating]);
+        return (
+          <StepContainer>
+            <div className="animate-in text-8xl">🎂</div>
+            <h1 className="animate-in font-heading text-5xl md:text-6xl text-gradient">My Wish For You</h1>
+            <p className="animate-in text-lg text-slate-300 max-w-md">
+              May the next year bring you all the love, success, and pure happiness you so rightfully deserve. May your dreams soar higher than ever.
+            </p>
+            <div className="h-16 flex items-center justify-center">
+              <GradientButton ref={buttonRef} onClick={onCelebrate} className="animate-in" disabled={isCelebrating}>
+                Celebrate!
+              </GradientButton>
+              <p ref={finalMessageRef} className="text-2xl font-bold text-gradient opacity-0" style={{ transform: 'translateY(20px)' }}>
+                Happy Birthday, my crush! ❤️
+              </p>
+            </div>
+          </StepContainer>
+        );
+      };
+
+      // Component: ThreeHearts
+      const ThreeHearts = ({ triggerFinale }) => {
+        const mountRef = useRef(null);
+        const heartsRef = useRef([]);
+        useEffect(() => {
+          if (!mountRef.current) return;
+          const mount = mountRef.current;
+          const scene = new THREE.Scene();
+          const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+          camera.position.z = 15;
+          const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+          renderer.setSize(window.innerWidth, window.innerHeight);
+          renderer.setPixelRatio(window.devicePixelRatio);
+          mount.appendChild(renderer.domElement);
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+          scene.add(ambientLight);
+          const directionalLight = new THREE.DirectionalLight(0xff88aa, 1);
+          directionalLight.position.set(1, 1, 1);
+          scene.add(directionalLight);
+          const heartShape = new THREE.Shape();
+          heartShape.moveTo( 2.5, 2.5 );
+          heartShape.bezierCurveTo( 2.5, 2.5, 2, 0, 0, 0 );
+          heartShape.bezierCurveTo( -3, 0, -3, 3.5, -3, 3.5 );
+          heartShape.bezierCurveTo( -3, 5.5, -1, 7.7, 2.5, 9.5 );
+          heartShape.bezierCurveTo( 6, 7.7, 8, 5.5, 8, 3.5 );
+          heartShape.bezierCurveTo( 8, 3.5, 8, 0, 5, 0 );
+          heartShape.bezierCurveTo( 3.5, 0, 2.5, 2.5, 2.5, 2.5 );
+          const extrudeSettings = { depth: 1, bevelEnabled: true, bevelSegments: 2, steps: 2, bevelSize: 0.5, bevelThickness: 0.5 };
+          const geometry = new THREE.ExtrudeGeometry(heartShape, extrudeSettings);
+          const hearts = [];
+          const heartColors = [0xff0040, 0xff4081, 0xf50057];
+          for (let i = 0; i < 25; i++) {
+              const material = new THREE.MeshStandardMaterial({ color: heartColors[Math.floor(Math.random() * heartColors.length)], metalness: 0.5, roughness: 0.3 });
+              const heart = new THREE.Mesh(geometry, material);
+              heart.position.set((Math.random() - 0.5) * 40, (Math.random() - 0.5) * 30, (Math.random() - 0.5) * 20);
+              heart.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+              const scale = Math.random() * 0.1 + 0.05;
+              heart.scale.set(scale, scale, scale);
+              heart.userData.initialY = heart.position.y;
+              heart.userData.sineOffset = Math.random() * Math.PI * 2;
+              scene.add(heart);
+              hearts.push(heart);
+          }
+          heartsRef.current = hearts;
+          const clock = new THREE.Clock();
+          const animate = () => {
+              requestAnimationFrame(animate);
+              const delta = clock.getDelta();
+              hearts.forEach(heart => {
+                  heart.rotation.x += delta * 0.1;
+                  heart.rotation.y += delta * 0.2;
+                  heart.position.y = heart.userData.initialY + Math.sin(clock.getElapsedTime() + heart.userData.sineOffset) * 2;
+                  heart.position.x += delta * 0.1;
+                  if (heart.position.x > 25) {
+                      heart.position.x = -25;
+                  }
+              });
+              renderer.render(scene, camera);
+          };
+          animate();
+          const handleResize = () => {
+              camera.aspect = window.innerWidth / window.innerHeight;
+              camera.updateProjectionMatrix();
+              renderer.setSize(window.innerWidth, window.innerHeight);
+          };
+          window.addEventListener('resize', handleResize);
+          return () => {
+              window.removeEventListener('resize', handleResize);
+              if (mount) {
+                  mount.removeChild(renderer.domElement);
+              }
+          };
+        }, []);
+        useEffect(() => {
+          if (triggerFinale) {
+            heartsRef.current.forEach((heart, i) => {
+              gsap.to(heart.position, { y: heart.position.y + 30 + Math.random() * 10, x: heart.position.x + (Math.random() - 0.5) * 20, z: heart.position.z + (Math.random() - 0.5) * 20, duration: 4 + Math.random() * 2, ease: 'power2.inOut', delay: i * 0.02 });
+              gsap.to(heart.rotation, { x: heart.rotation.x + Math.PI * 2, y: heart.rotation.y + Math.PI * 2, duration: 6, ease: 'power1.inOut' });
+              gsap.to(heart.scale, { x: 0, y: 0, z: 0, duration: 2, delay: 3 + Math.random() * 2, ease: 'power3.in' });
+            });
+          }
+        }, [triggerFinale]);
+        return <div ref={mountRef} className="fixed top-0 left-0 w-full h-full z-0" />;
+      };
+
+      // Main App Component
+      const App = () => {
+        const [currentStep, setCurrentStep] = useState(1);
+        const [isCelebrating, setIsCelebrating] = useState(false);
+        const stepRefs = useRef([]);
+        const TOTAL_STEPS = 5;
+
+        useEffect(() => {
+          stepRefs.current = stepRefs.current.slice(0, TOTAL_STEPS);
+        }, []);
+
+        const handleNext = () => {
+          if (currentStep < TOTAL_STEPS) {
+            const outgoingStep = stepRefs.current[currentStep - 1];
+            const incomingStep = stepRefs.current[currentStep];
+            gsap.timeline()
+              .to(outgoingStep, { autoAlpha: 0, scale: 0.9, duration: 0.5, ease: 'power3.in' })
+              .set(outgoingStep, { display: 'none' })
+              .set(incomingStep, { display: 'flex', autoAlpha: 0, scale: 1.1 })
+              .to(incomingStep, { autoAlpha: 1, scale: 1, duration: 0.5, ease: 'power3.out' })
+              .fromTo(
+                incomingStep?.querySelectorAll('.animate-in'),
+                { autoAlpha: 0, y: 30 },
+                { autoAlpha: 1, y: 0, duration: 0.5, stagger: 0.2, ease: 'power3.out' },
+                "-=0.3"
+              );
+            setCurrentStep(prev => prev + 1);
+          }
+        };
+
+        const handleCelebrate = () => {
+          setIsCelebrating(true);
+          const duration = 5 * 1000;
+          const animationEnd = Date.now() + duration;
+          const randomInRange = (min, max) => Math.random() * (max - min) + min;
+          const fire = (particleRatio, opts) => {
+              confetti(Object.assign({}, { origin: { y: 0.7 } }, opts, { particleCount: Math.floor(200 * particleRatio) }));
+          };
+          fire(0.25, { spread: 26, startVelocity: 55 });
+          fire(0.2, { spread: 60 });
+          fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+          fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+          fire(0.1, { spread: 120, startVelocity: 45 });
+          const interval = window.setInterval(() => {
+              const timeLeft = animationEnd - Date.now();
+              if (timeLeft <= 0) return clearInterval(interval);
+              const particleCount = 50 * (timeLeft / duration);
+              confetti({ origin: { x: Math.random(), y: Math.random() - 0.2 }, particleCount, angle: randomInRange(55, 125), spread: randomInRange(50, 70), });
+              confetti({ origin: { x: Math.random(), y: Math.random() - 0.2 }, particleCount, angle: randomInRange(55, 125), spread: randomInRange(50, 70), shapes: ['emoji'], scalar: 3, emoji: ['❤️', '💖', '✨'] });
+          }, 250);
+        };
+
+        const progress = (currentStep / TOTAL_STEPS) * 100;
+
+        const steps = [
+          <Step1 onNext={handleNext} />,
+          <Step2 onNext={handleNext} />,
+          <Step3 onNext={handleNext} />,
+          <Step4 onNext={handleNext} />,
+          <Step5 onCelebrate={handleCelebrate} isCelebrating={isCelebrating} />,
+        ];
+
+        return (
+          <div className="relative w-screen h-screen flex items-center justify-center text-white overflow-hidden">
+            <div className="aurora-bg"></div>
+            <ThreeHearts triggerFinale={isCelebrating} />
+            <ProgressBar progress={progress} />
+            <div className="w-full h-full flex items-center justify-center">
+              {steps.map((step, index) => (
+                <div
+                  key={index}
+                  ref={el => stepRefs.current[index] = el}
+                  style={{ display: currentStep === index + 1 ? 'flex' : 'none', opacity: currentStep === index + 1 ? 1 : 0 }}
+                >
+                  {step}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      };
+
+      // Render the App
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+
+    </script>
+  </body>
+</html>
